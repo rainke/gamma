@@ -1,0 +1,22 @@
+{
+  "name": "gamma",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "scripts": {
+    "dev": "rollup -cw --environment TARGET:example",
+    "build": "rollup -c --environment TARGET:gamma"
+  },
+  "dependencies": {
+    "@types/d3": "^5.7.2",
+    "d3": "^5.12.0",
+    "typescript": "^3.7.2"
+  },
+  "devDependencies": {
+    "rollup": "^1.26.3",
+    "rollup-plugin-json": "^4.0.0",
+    "rollup-plugin-node-resolve": "^5.2.0",
+    "rollup-plugin-terser": "^5.1.2",
+    "rollup-plugin-typescript2": "^0.25.2"
+  }
+}
