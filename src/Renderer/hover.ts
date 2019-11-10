@@ -1,11 +1,16 @@
 import { GammaNode } from '../types';
 import { Setting } from '../setting';
 
+interface RenderHoverConfig {
+  label?: boolean;
+}
+
 const renderHover = (
   node: GammaNode,
   context: CanvasRenderingContext2D,
   transform: d3.ZoomTransform,
-  setting: Setting
+  setting: Setting,
+  RenderHoverConfig: RenderHoverConfig = { label: true }
 ) => {
   const nodeSize = node.size || setting('nodeSize');
   const hoverNodeColor = node.color || setting('hoverNodeColor');
@@ -20,12 +25,14 @@ const renderHover = (
   context.shadowBlur = 8;
   context.shadowColor = '#666';
   context.fill();
-  const text = node[hoverLabel] as string;
-  if (text) {
-    const fontSize = 14 / transform.k;
-    context.font = `${fontSize}px sans-serif`;
-    context.fillStyle = hoverLabelColor;
-    context.fillText(text, node.x + nodeSize + 2, node.y + fontSize / 3);
+  if(RenderHoverConfig.label) {
+    const text = node[hoverLabel] as string;
+    if (text) {
+      const fontSize = 14 / transform.k;
+      context.font = `${fontSize}px sans-serif`;
+      context.fillStyle = hoverLabelColor;
+      context.fillText(text, node.x + nodeSize + 2, node.y + fontSize / 3);
+    }
   }
 };
 

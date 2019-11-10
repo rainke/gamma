@@ -4905,9 +4905,35 @@
     return zoom;
   }
 
-  const renderNode = (node, context, setting) => {
-      const nodeSize = node.size || setting('nodeSize');
-      const nodeColor = node.color || setting('nodeColor');
+  /*! *****************************************************************************
+  Copyright (c) Microsoft Corporation. All rights reserved.
+  Licensed under the Apache License, Version 2.0 (the "License"); you may not use
+  this file except in compliance with the License. You may obtain a copy of the
+  License at http://www.apache.org/licenses/LICENSE-2.0
+
+  THIS CODE IS PROVIDED ON AN *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+  KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION ANY IMPLIED
+  WARRANTIES OR CONDITIONS OF TITLE, FITNESS FOR A PARTICULAR PURPOSE,
+  MERCHANTABLITY OR NON-INFRINGEMENT.
+
+  See the Apache Version 2.0 License for specific language governing permissions
+  and limitations under the License.
+  ***************************************************************************** */
+
+  var __assign = function() {
+      __assign = Object.assign || function __assign(t) {
+          for (var s, i = 1, n = arguments.length; i < n; i++) {
+              s = arguments[i];
+              for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p)) t[p] = s[p];
+          }
+          return t;
+      };
+      return __assign.apply(this, arguments);
+  };
+
+  var renderNode = function (node, context, setting) {
+      var nodeSize = node.size || setting('nodeSize');
+      var nodeColor = node.color || setting('nodeColor');
       context.beginPath();
       context.arc(node.x, node.y, nodeSize, 0, 2 * Math.PI);
       context.closePath();
@@ -4915,7 +4941,7 @@
       context.fill();
   };
 
-  const renderLink = (source, target, ctx, setting) => {
+  var renderLink = function (source, target, ctx, setting) {
       ctx.beginPath();
       ctx.moveTo(source.x, source.y);
       ctx.lineTo(target.x, target.y);
@@ -4924,11 +4950,11 @@
       ctx.stroke();
   };
 
-  const renderHover = (node, context, transform, setting) => {
-      const nodeSize = node.size || setting('nodeSize');
-      const hoverNodeColor = node.color || setting('hoverNodeColor');
-      const hoverLabelColor = setting('hoverLabelColor');
-      const hoverLabel = setting('hoverLabel');
+  var renderHover = function (node, context, transform, setting) {
+      var nodeSize = node.size || setting('nodeSize');
+      var hoverNodeColor = node.color || setting('hoverNodeColor');
+      var hoverLabelColor = setting('hoverLabelColor');
+      var hoverLabel = setting('hoverLabel');
       context.beginPath();
       context.arc(node.x, node.y, nodeSize + 1, 0, 2 * Math.PI);
       context.closePath();
@@ -4938,17 +4964,18 @@
       context.shadowBlur = 8;
       context.shadowColor = '#666';
       context.fill();
-      const text = node[hoverLabel];
+      var text = node[hoverLabel];
       if (text) {
-          const fontSize = 14 / transform.k;
-          context.font = `${fontSize}px sans-serif`;
+          var fontSize = 14 / transform.k;
+          context.font = fontSize + "px sans-serif";
           context.fillStyle = hoverLabelColor;
           context.fillText(text, node.x + nodeSize + 2, node.y + fontSize / 3);
       }
   };
 
-  class Renderer {
-      constructor(manager, setting, container, option) {
+  var Renderer = (function () {
+      function Renderer(manager, setting, container, option) {
+          var _this = this;
           this.manager = manager;
           this.setting = setting;
           this.option = option;
@@ -4978,84 +5005,87 @@
           })
               .call(this.zoom);
           this.canvas
-              .filter(item => item === 'gamma-hover')
-              .on('mousemove', () => {
-              const { x, y, k } = this.transfrom;
-              const { layerX, layerY, type } = event;
-              const [graphX, graphY] = [(layerX - x) / k, (layerY - y) / k];
-              const nearestNode = manager.find(graphX, graphY);
+              .filter(function (item) { return item === 'gamma-hover'; })
+              .on('mousemove', function () {
+              var _a = _this.transfrom, x = _a.x, y = _a.y, k = _a.k;
+              var layerX = event.layerX, layerY = event.layerY, type = event.type;
+              var _b = [(layerX - x) / k, (layerY - y) / k], graphX = _b[0], graphY = _b[1];
+              var nearestNode = manager.find(graphX, graphY);
               if (Math.pow((graphX - nearestNode.x), 2) + Math.pow((graphY - nearestNode.y), 2) < 9) {
-                  this.hoveredTargets = this.manager.graph.links.filter(link => {
+                  _this.hoveredTargets = _this.manager.graph.links.filter(function (link) {
                       return link.source === nearestNode;
-                  }).map(link => link.target);
-                  this.hoveredNode = nearestNode;
-                  this.renderHover();
+                  }).map(function (link) { return link.target; });
+                  _this.hoveredNode = nearestNode;
+                  _this.renderHover();
               }
               else {
-                  this.hoveredNode = null;
-                  this.hoveredTargets = [];
-                  this.clear('hover');
+                  _this.hoveredNode = null;
+                  _this.hoveredTargets = [];
+                  _this.clear('hover');
               }
           });
-          const [scene, hover] = this.canvas.nodes().map(cvs => cvs.getContext('2d'));
+          var _a = this.canvas.nodes().map(function (cvs) { return cvs.getContext('2d'); }), scene = _a[0], hover = _a[1];
           this.contexts.scene = scene;
           this.contexts.hover = hover;
           this.zoom.translateBy(this.canvas, option.width / 2, option.height / 2);
-          manager.on('tick', () => {
-              this.render();
-              this.hoveredNode && this.renderHover();
+          manager.on('tick', function () {
+              _this.render();
+              _this.hoveredNode && _this.renderHover();
           });
       }
-      zooming() {
+      Renderer.prototype.zooming = function () {
           this.transfrom = event.transform;
           if (!this.manager.simulationIsRuning) {
               this.render();
           }
           this.hoveredNode && this.renderHover();
-      }
-      setTransfrom(ctx) {
-          const { x, y, k } = this.transfrom;
+      };
+      Renderer.prototype.setTransfrom = function (ctx) {
+          var _a = this.transfrom, x = _a.x, y = _a.y, k = _a.k;
           ctx.translate(x, y);
           ctx.scale(k, k);
-      }
-      renderHover() {
+      };
+      Renderer.prototype.renderHover = function () {
+          var _this = this;
           this.clear('hover');
           this.contexts.hover.save();
           this.setTransfrom(this.contexts.hover);
-          this.hoveredTargets.forEach(node => {
-              renderLink(Object.assign(Object.assign({}, this.hoveredNode), { linkColor: 'pink' }), node, this.contexts.hover, this.setting);
-              renderHover(Object.assign(Object.assign({}, node), { color: 'pink' }), this.contexts.hover, this.transfrom, this.setting);
+          this.hoveredTargets.forEach(function (node) {
+              renderLink(__assign(__assign({}, _this.hoveredNode), { linkColor: 'pink' }), node, _this.contexts.hover, _this.setting);
+              renderHover(__assign(__assign({}, node), { color: 'pink' }), _this.contexts.hover, _this.transfrom, _this.setting);
           });
           renderHover(this.hoveredNode, this.contexts.hover, this.transfrom, this.setting);
           this.contexts.hover.restore();
-      }
-      render() {
+      };
+      Renderer.prototype.render = function () {
+          var _this = this;
           this.contexts.scene.clearRect(0, 0, this.option.width, this.option.height);
           this.contexts.scene.save();
           this.setTransfrom(this.contexts.scene);
-          this.manager.graph.links.forEach(link => {
-              renderLink(link.source, link.target, this.contexts.scene, this.setting);
+          this.manager.graph.links.forEach(function (link) {
+              renderLink(link.source, link.target, _this.contexts.scene, _this.setting);
           });
-          this.manager.graph.nodes.forEach(node => {
-              renderNode(node, this.contexts.scene, this.setting);
+          this.manager.graph.nodes.forEach(function (node) {
+              renderNode(node, _this.contexts.scene, _this.setting);
           });
           this.contexts.scene.restore();
-      }
-      clear(cond) {
-          const { width, height } = this.option;
+      };
+      Renderer.prototype.clear = function (cond) {
+          var _a = this.option, width = _a.width, height = _a.height;
           if (cond === true) {
-              for (let context in this.contexts) {
+              for (var context in this.contexts) {
                   this.contexts[context].clearRect(0, 0, width, height);
               }
           }
           else {
               this.contexts[cond].clearRect(0, 0, width, height);
           }
-      }
-  }
+      };
+      return Renderer;
+  }());
 
   function factory(s) {
-      const settings = {
+      var settings = {
           nodeSize: 3,
           nodeColor: 'green',
           hoverNodeColor: 'green',
@@ -5068,17 +5098,18 @@
       };
   }
 
-  class ForceManager {
-      constructor() {
+  var ForceManager = (function () {
+      function ForceManager() {
+          var _this = this;
           this.simulation = forceSimulation();
           this.ticks = new Set();
           this.ends = new Set();
           this.simulationIsRuning = false;
           this.graph = { nodes: [], links: [] };
-          this.layout = (graph) => {
-              this.simulationIsRuning = true;
-              this.graph = graph;
-              this.simulation
+          this.layout = function (graph) {
+              _this.simulationIsRuning = true;
+              _this.graph = graph;
+              _this.simulation
                   .nodes(graph.nodes)
                   .alpha(1)
                   .alphaTarget(0)
@@ -5090,44 +5121,45 @@
               .theta(0.5)
               .distanceMax(1000)
               .strength(-100))
-              .force('link', forceLink().id(link => link.id).iterations(10)
+              .force('link', forceLink().id(function (link) { return link.id; }).iterations(10)
               .distance(40)
               .strength(.5))
               .force('center', forceCenter())
               .force('collide', forceCollide(6))
               .force('x', forceX().strength(0.1))
               .force('y', forceY().strength(0.1))
-              .on('tick', () => {
-              this.ticks.forEach(tick => tick.call(this));
+              .on('tick', function () {
+              _this.ticks.forEach(function (tick) { return tick.call(_this); });
           })
-              .on('end', () => {
-              this.simulationIsRuning = false;
-              this.ends.forEach(end => end.call(this));
+              .on('end', function () {
+              _this.simulationIsRuning = false;
+              _this.ends.forEach(function (end) { return end.call(_this); });
           });
       }
-      find(x, y) {
+      ForceManager.prototype.find = function (x, y) {
           return this.simulation.find(x, y);
-      }
-      on(type, listener) {
+      };
+      ForceManager.prototype.on = function (type, listener) {
           if (type === 'tick') {
               this.ticks.add(listener);
           }
           else if (type === 'end') {
               this.ends.add(listener);
           }
-      }
-      off(type, listener) {
+      };
+      ForceManager.prototype.off = function (type, listener) {
           if (type === 'tick') {
               this.ticks.delete(listener);
           }
           else if (type === 'end') {
               this.ends.delete(listener);
           }
-      }
-  }
+      };
+      return ForceManager;
+  }());
 
-  class Gamma {
-      constructor(option) {
+  var Gamma = (function () {
+      function Gamma(option) {
           this.width = 800;
           this.height = 800;
           this.manager = new ForceManager();
@@ -5147,10 +5179,11 @@
               height: this.height
           });
       }
-      refreshWithGraph(graph) {
+      Gamma.prototype.refreshWithGraph = function (graph) {
           this.manager.layout(graph);
-      }
-  }
+      };
+      return Gamma;
+  }());
 
   return Gamma;
 

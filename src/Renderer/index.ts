@@ -1,4 +1,12 @@
-import { Selection, zoom, zoomIdentity, event, select, D3ZoomEvent, Simulation } from 'd3';
+import {
+  Selection,
+  zoom,
+  zoomIdentity,
+  event,
+  select,
+  D3ZoomEvent,
+  Simulation
+} from 'd3';
 import renderNode from './node';
 import renderLink from './link';
 import renderHover from './hover';
@@ -57,10 +65,12 @@ class Renderer {
         const [graphX, graphY] = [(layerX - x) / k, (layerY - y) / k];
         const nearestNode = manager.find(graphX, graphY);
         if ((graphX - nearestNode.x) ** 2 + (graphY - nearestNode.y) ** 2 < 9) {
-          this.hoveredTargets = this.manager.graph.links.filter(link => {
-            return link.source === nearestNode;
-          }).map(link => link.target as GammaNode)
-          
+          this.hoveredTargets = this.manager.graph.links
+            .filter(link => {
+              return link.source === nearestNode;
+            })
+            .map(link => link.target as GammaNode);
+
           this.hoveredNode = nearestNode;
           this.renderHover();
         } else {
@@ -77,7 +87,7 @@ class Renderer {
 
     manager.on('tick', () => {
       this.render();
-      this.hoveredNode && this.renderHover()
+      this.hoveredNode && this.renderHover();
     });
   }
 
@@ -100,10 +110,26 @@ class Renderer {
     this.contexts.hover.save();
     this.setTransfrom(this.contexts.hover);
     this.hoveredTargets.forEach(node => {
-      renderLink({...this.hoveredNode, linkColor: 'pink'}, node, this.contexts.hover, this.setting)
-      renderHover({...node, color: 'pink'}, this.contexts.hover, this.transfrom, this.setting);
+      renderLink(
+        { ...this.hoveredNode, linkColor: 'pink' },
+        node,
+        this.contexts.hover,
+        this.setting
+      );
+      renderHover(
+        { ...node, color: 'pink' },
+        this.contexts.hover,
+        this.transfrom,
+        this.setting,
+        { label: false }
+      );
     });
-    renderHover(this.hoveredNode, this.contexts.hover, this.transfrom, this.setting);
+    renderHover(
+      this.hoveredNode,
+      this.contexts.hover,
+      this.transfrom,
+      this.setting
+    );
     this.contexts.hover.restore();
   }
 
@@ -112,7 +138,12 @@ class Renderer {
     this.contexts.scene.save();
     this.setTransfrom(this.contexts.scene);
     this.manager.graph.links.forEach(link => {
-      renderLink(link.source as GammaNode, link.target as GammaNode, this.contexts.scene, this.setting);
+      renderLink(
+        link.source as GammaNode,
+        link.target as GammaNode,
+        this.contexts.scene,
+        this.setting
+      );
     });
     this.manager.graph.nodes.forEach(node => {
       renderNode(node, this.contexts.scene, this.setting);

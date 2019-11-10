@@ -1,10 +1,10 @@
 import ts from 'rollup-plugin-typescript2';
 import json from 'rollup-plugin-json';
 import resolve from 'rollup-plugin-node-resolve';
-import {terser} from 'rollup-plugin-terser';
+import { terser } from 'rollup-plugin-terser';
 
 function onwarn(warning, warn) {
-  if(warning.code === 'CIRCULAR_DEPENDENCY') {
+  if (warning.code === 'CIRCULAR_DEPENDENCY') {
     return;
   }
   warn(warning.message);
@@ -19,7 +19,7 @@ const configList = [
       format: 'iife',
       sourcemap: true
     },
-    plugins: [resolve(), json(), ts({useTsconfigDeclarationDir: true}), terser()]
+    plugins: [json(), ts({ useTsconfigDeclarationDir: true }), terser()]
   },
   {
     input: 'src/gamma.ts',
@@ -29,7 +29,7 @@ const configList = [
       format: 'umd',
       name: 'gamma'
     },
-    plugins: [resolve(), ts({useTsconfigDeclarationDir: true})]
+    plugins: [resolve(), ts({ useTsconfigDeclarationDir: true })]
   },
   {
     input: 'src/gamma.ts',
@@ -39,10 +39,9 @@ const configList = [
       format: 'umd',
       name: 'gamma'
     },
-    plugins: [resolve(), ts({useTsconfigDeclarationDir: true}), terser()]
+    plugins: [resolve(), ts({ useTsconfigDeclarationDir: true }), terser()]
   }
 ];
-export default function(){
-  return process.env.TARGET === 'example' ? configList[0]: configList.slice(1)
+export default function() {
+  return process.env.TARGET === 'example' ? configList[0] : configList.slice(1);
 }
-
