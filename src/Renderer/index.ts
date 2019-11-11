@@ -4,14 +4,14 @@ import {
   zoomIdentity,
   event,
   select,
-  D3ZoomEvent,
-  Simulation
+  D3ZoomEvent
 } from 'd3';
 import renderNode from './node';
 import renderLink from './link';
 import renderHover from './hover';
+import renderLegend from './legend';
 import ForceManager from '../forceManager';
-import { GammaGraph, GammaNode } from '../types';
+import { GammaGraph, GammaNode, legendItem } from '../types';
 import { Setting } from '../setting';
 
 type ContextKeys = 'hover' | 'scene';
@@ -19,8 +19,9 @@ type ContextKeys = 'hover' | 'scene';
 type Contexts = { [key in ContextKeys]?: CanvasRenderingContext2D };
 
 interface RenderOption {
-  width: number;
+  width?: number;
   height: number;
+  legend?: legendItem[]
 }
 
 class Renderer {
@@ -32,13 +33,16 @@ class Renderer {
   private transfrom = zoomIdentity;
   private hoveredNode: GammaNode = null;
   private hoveredTargets: GammaNode[] = [];
-  private selectedSource: GammaNode[] = [];
+  private width!: number;
+
   constructor(
     private manager: ForceManager,
     private setting: Setting,
     container: string,
     private option: RenderOption
   ) {
+    const defaultWidth = parseInt(select(container).style('width'));
+    this.width = option.width || defaultWidth
     this.canvas = select(container)
       .append('div')
       .attr('class', 'gamma-container')
@@ -50,7 +54,7 @@ class Renderer {
       .style('position', 'absolute')
       .style('top', 0)
       .style('left', 0)
-      .attr('width', option.width)
+      .attr('width',this.width)
       .attr('height', option.height)
       .attr('class', function(d) {
         return d;
@@ -83,12 +87,20 @@ class Renderer {
     const [scene, hover] = this.canvas.nodes().map(cvs => cvs.getContext('2d'));
     this.contexts.scene = scene;
     this.contexts.hover = hover;
-    this.zoom.translateBy(this.canvas, option.width / 2, option.height / 2);
+    this.zoom.translateBy(this.canvas, this.width / 2, option.height / 2);
 
     manager.on('tick', () => {
       this.render();
       this.hoveredNode && this.renderHover();
     });
+
+    window.addEventListener('resize', () => {
+      const width = parseInt(select(container).style('width'))
+      this.zoom.translateBy(this.canvas, (width - this.width) / 2, 0);
+      this.width = option.width || width;
+      this.canvas.attr('width', this.width);
+      this.render();
+    })
   }
 
   zooming() {
@@ -134,7 +146,7 @@ class Renderer {
   }
 
   render() {
-    this.contexts.scene.clearRect(0, 0, this.option.width, this.option.height);
+    this.clear('scene');
     this.contexts.scene.save();
     this.setTransfrom(this.contexts.scene);
     this.manager.graph.links.forEach(link => {
@@ -148,17 +160,26 @@ class Renderer {
     this.manager.graph.nodes.forEach(node => {
       renderNode(node, this.contexts.scene, this.setting);
     });
+
     this.contexts.scene.restore();
+
+    if(this.option.legend) {
+      this.renderLegend();
+    }
+  }
+
+  renderLegend() {
+    renderLegend(this.option.legend, this.contexts.scene, this.width)
   }
 
   clear(cond: true | ContextKeys) {
-    const { width, height } = this.option;
+    const { height } = this.option;
     if (cond === true) {
       for (let context in this.contexts) {
-        this.contexts[context as ContextKeys].clearRect(0, 0, width, height);
+        this.contexts[context as ContextKeys].clearRect(0, 0, this.width, height);
       }
     } else {
-      this.contexts[cond].clearRect(0, 0, width, height);
+      this.contexts[cond].clearRect(0, 0, this.width, height);
     }
   }
 }

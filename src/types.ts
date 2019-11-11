@@ -15,3 +15,9 @@ export interface GammaGraph {
   nodes: GammaNode[],
   links: GammaLink[]
 }
+
+export interface legendItem {
+  name: string;
+  color: string;
+}
+

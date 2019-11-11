@@ -1,9 +1,11 @@
 import ForceManager from '../forceManager';
+import { legendItem } from '../types';
 import { Setting } from '../setting';
 declare type ContextKeys = 'hover' | 'scene';
 interface RenderOption {
-    width: number;
+    width?: number;
     height: number;
+    legend?: legendItem[];
 }
 declare class Renderer {
     private manager;
@@ -15,12 +17,13 @@ declare class Renderer {
     private transfrom;
     private hoveredNode;
     private hoveredTargets;
-    private selectedSource;
+    private width;
     constructor(manager: ForceManager, setting: Setting, container: string, option: RenderOption);
     zooming(): void;
     setTransfrom(ctx: CanvasRenderingContext2D): void;
     renderHover(): void;
     render(): void;
+    renderLegend(): void;
     clear(cond: true | ContextKeys): void;
 }
 export default Renderer;

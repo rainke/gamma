@@ -12,7 +12,14 @@ fetch('./data.json').then(res => res.json()).then(data => {
     },
     onEnd() {
       console.log('end');
-    }
+    },
+    legend: [{
+      color: 'red',
+      name: '老师'
+    }, {
+      color: 'blue',
+      name: '学生'
+    }]
   });
   document.addEventListener('dblclick', function(e){
     if(e.target === this.documentElement) {

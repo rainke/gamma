@@ -4950,7 +4950,8 @@
       ctx.stroke();
   };
 
-  var renderHover = function (node, context, transform, setting) {
+  var renderHover = function (node, context, transform, setting, RenderHoverConfig) {
+      if (RenderHoverConfig === void 0) { RenderHoverConfig = { label: true }; }
       var nodeSize = node.size || setting('nodeSize');
       var hoverNodeColor = node.color || setting('hoverNodeColor');
       var hoverLabelColor = setting('hoverLabelColor');
@@ -4964,14 +4965,39 @@
       context.shadowBlur = 8;
       context.shadowColor = '#666';
       context.fill();
-      var text = node[hoverLabel];
-      if (text) {
-          var fontSize = 14 / transform.k;
-          context.font = fontSize + "px sans-serif";
-          context.fillStyle = hoverLabelColor;
-          context.fillText(text, node.x + nodeSize + 2, node.y + fontSize / 3);
+      if (RenderHoverConfig.label) {
+          var text = node[hoverLabel];
+          if (text) {
+              var fontSize = 14 / transform.k;
+              context.font = fontSize + "px sans-serif";
+              context.fillStyle = hoverLabelColor;
+              context.fillText(text, node.x + nodeSize + 2, node.y + fontSize / 3);
+          }
       }
   };
+
+  var renderLegend = (function (legend, ctx, width) {
+      ctx.save();
+      var legendWidth = 0;
+      var w = 20;
+      var h = 12;
+      var top = 10;
+      ctx.font = '14px sans-serif';
+      var legendDetails = legend.map(function (l) {
+          var textWidth = ctx.measureText(l.name).width;
+          var x = legendWidth;
+          legendWidth += w + 5 + textWidth + 10;
+          return __assign(__assign({}, l), { textWidth: textWidth, x: x });
+      });
+      var startX = (width - legendWidth) / 2;
+      legendDetails.forEach(function (l, idx) {
+          ctx.fillStyle = l.color;
+          ctx.fillRect(startX + l.x, top, w, h);
+          ctx.textBaseline = 'middle';
+          ctx.fillText(l.name, startX + l.x + w + 5, top + h / 2);
+      });
+      ctx.restore();
+  });
 
   var Renderer = (function () {
       function Renderer(manager, setting, container, option) {
@@ -4986,7 +5012,8 @@
           this.transfrom = identity$2;
           this.hoveredNode = null;
           this.hoveredTargets = [];
-          this.selectedSource = [];
+          var defaultWidth = parseInt(select(container).style('width'));
+          this.width = option.width || defaultWidth;
           this.canvas = select(container)
               .append('div')
               .attr('class', 'gamma-container')
@@ -4998,7 +5025,7 @@
               .style('position', 'absolute')
               .style('top', 0)
               .style('left', 0)
-              .attr('width', option.width)
+              .attr('width', this.width)
               .attr('height', option.height)
               .attr('class', function (d) {
               return d;
@@ -5012,9 +5039,11 @@
               var _b = [(layerX - x) / k, (layerY - y) / k], graphX = _b[0], graphY = _b[1];
               var nearestNode = manager.find(graphX, graphY);
               if (Math.pow((graphX - nearestNode.x), 2) + Math.pow((graphY - nearestNode.y), 2) < 9) {
-                  _this.hoveredTargets = _this.manager.graph.links.filter(function (link) {
+                  _this.hoveredTargets = _this.manager.graph.links
+                      .filter(function (link) {
                       return link.source === nearestNode;
-                  }).map(function (link) { return link.target; });
+                  })
+                      .map(function (link) { return link.target; });
                   _this.hoveredNode = nearestNode;
                   _this.renderHover();
               }
@@ -5027,10 +5056,17 @@
           var _a = this.canvas.nodes().map(function (cvs) { return cvs.getContext('2d'); }), scene = _a[0], hover = _a[1];
           this.contexts.scene = scene;
           this.contexts.hover = hover;
-          this.zoom.translateBy(this.canvas, option.width / 2, option.height / 2);
+          this.zoom.translateBy(this.canvas, this.width / 2, option.height / 2);
           manager.on('tick', function () {
               _this.render();
               _this.hoveredNode && _this.renderHover();
+          });
+          window.addEventListener('resize', function () {
+              var width = parseInt(select(container).style('width'));
+              _this.zoom.translateBy(_this.canvas, (width - _this.width) / 2, 0);
+              _this.width = option.width || width;
+              _this.canvas.attr('width', _this.width);
+              _this.render();
           });
       }
       Renderer.prototype.zooming = function () {
@@ -5052,14 +5088,14 @@
           this.setTransfrom(this.contexts.hover);
           this.hoveredTargets.forEach(function (node) {
               renderLink(__assign(__assign({}, _this.hoveredNode), { linkColor: 'pink' }), node, _this.contexts.hover, _this.setting);
-              renderHover(__assign(__assign({}, node), { color: 'pink' }), _this.contexts.hover, _this.transfrom, _this.setting);
+              renderHover(__assign(__assign({}, node), { color: 'pink' }), _this.contexts.hover, _this.transfrom, _this.setting, { label: false });
           });
           renderHover(this.hoveredNode, this.contexts.hover, this.transfrom, this.setting);
           this.contexts.hover.restore();
       };
       Renderer.prototype.render = function () {
           var _this = this;
-          this.contexts.scene.clearRect(0, 0, this.option.width, this.option.height);
+          this.clear('scene');
           this.contexts.scene.save();
           this.setTransfrom(this.contexts.scene);
           this.manager.graph.links.forEach(function (link) {
@@ -5069,16 +5105,22 @@
               renderNode(node, _this.contexts.scene, _this.setting);
           });
           this.contexts.scene.restore();
+          if (this.option.legend) {
+              this.renderLegend();
+          }
+      };
+      Renderer.prototype.renderLegend = function () {
+          renderLegend(this.option.legend, this.contexts.scene, this.width);
       };
       Renderer.prototype.clear = function (cond) {
-          var _a = this.option, width = _a.width, height = _a.height;
+          var height = this.option.height;
           if (cond === true) {
               for (var context in this.contexts) {
-                  this.contexts[context].clearRect(0, 0, width, height);
+                  this.contexts[context].clearRect(0, 0, this.width, height);
               }
           }
           else {
-              this.contexts[cond].clearRect(0, 0, width, height);
+              this.contexts[cond].clearRect(0, 0, this.width, height);
           }
       };
       return Renderer;
@@ -5160,7 +5202,6 @@
 
   var Gamma = (function () {
       function Gamma(option) {
-          this.width = 800;
           this.height = 800;
           this.manager = new ForceManager();
           this.onEnd = function () { };
@@ -5176,7 +5217,8 @@
           this.manager.layout(option.graph);
           this.renderer = new Renderer(this.manager, factory(option.graphSettings), option.container, {
               width: this.width,
-              height: this.height
+              height: this.height,
+              legend: option.legend
           });
       }
       Gamma.prototype.refreshWithGraph = function (graph) {

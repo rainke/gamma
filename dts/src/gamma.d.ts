@@ -1,11 +1,16 @@
 import { Settings } from './setting';
 import { GammaGraph } from './types';
+interface legendItem {
+    name: string;
+    color: string;
+}
 export interface GammaOption {
     graph: GammaGraph;
     container: string;
     graphSettings?: Partial<Settings>;
     forceConfig?: any;
     onEnd?: () => void;
+    legend?: legendItem[];
 }
 export default class Gamma {
     private width;
@@ -16,4 +21,5 @@ export default class Gamma {
     constructor(option?: GammaOption);
     refreshWithGraph(graph: GammaGraph): void;
 }
+export {};
 //# sourceMappingURL=gamma.d.ts.map

@@ -4,15 +4,21 @@ import setSetings, { Settings } from './setting';
 import forceManager from './forceManager';
 import { GammaGraph } from './types';
 
+interface legendItem {
+  name: string;
+  color: string;
+}
+
 export interface GammaOption {
   graph: GammaGraph;
   container: string;
   graphSettings?: Partial<Settings>;
   forceConfig?: any;
   onEnd?: () => void;
+  legend?: legendItem[]
 }
 export default class Gamma {
-  private width = 800;
+  private width: number;
   private height = 800;
   private renderer: Renderer;
   private manager = new forceManager();
@@ -34,7 +40,8 @@ export default class Gamma {
 
     this.renderer = new Renderer(this.manager, setSetings(option.graphSettings), option.container, {
       width: this.width,
-      height: this.height
+      height: this.height,
+      legend: option.legend
     });
   }
 
