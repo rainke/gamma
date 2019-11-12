@@ -5004,6 +5004,7 @@
           var _this = this;
           this.manager = manager;
           this.setting = setting;
+          this.container = container;
           this.option = option;
           this.zoom = zoom()
               .scaleExtent([0.1, 4])
@@ -5012,11 +5013,54 @@
           this.transfrom = identity$2;
           this.hoveredNode = null;
           this.hoveredTargets = [];
+          this.tooltipFormat = function (node) { return JSON.stringify(node, null, 2); };
+          this.overallFormat = function (graph) { return "\u8282\u70B9\u603B\u6570\uFF1A" + graph.nodes.length; };
+          this.resize = function () {
+              var width = parseInt(select(_this.container).style('width'));
+              _this.zoom.translateBy(_this.canvas, (width - _this.width) / 2, 0);
+              _this.width = _this.option.width || width;
+              _this.canvas.attr('width', _this.width);
+              _this.render();
+          };
+          this.handleMouse = function () {
+              var _a = _this.transfrom, x = _a.x, y = _a.y, k = _a.k;
+              var layerX = event.layerX, layerY = event.layerY, type = event.type;
+              var _b = [(layerX - x) / k, (layerY - y) / k], graphX = _b[0], graphY = _b[1];
+              var nearestNode = _this.manager.find(graphX, graphY);
+              var size = nearestNode.size || _this.setting('nodeSize');
+              if (Math.pow((graphX - nearestNode.x), 2) + Math.pow((graphY - nearestNode.y), 2) <= Math.pow(size, 2)) {
+                  _this.hoveredTargets = _this.manager.graph.links
+                      .filter(function (link) {
+                      return link.source === nearestNode;
+                  })
+                      .map(function (link) { return link.target; });
+                  _this.hoveredNode = nearestNode;
+                  _this.renderHover();
+                  if (type === 'click') {
+                      _this.tooltip.style('display', 'block').text(_this.tooltipFormat(nearestNode));
+                  }
+              }
+              else {
+                  _this.hoveredNode = null;
+                  _this.hoveredTargets = [];
+                  _this.clear('hover');
+                  if (type === 'click') {
+                      _this.tooltip.style('display', 'none');
+                  }
+              }
+          };
           var defaultWidth = parseInt(select(container).style('width'));
+          if (option.tooltip && option.tooltip.format) {
+              this.tooltipFormat = option.tooltip.format;
+          }
+          if (option.overall && option.overall.format) {
+              this.overallFormat = option.overall.format;
+          }
           this.width = option.width || defaultWidth;
           this.canvas = select(container)
               .append('div')
               .attr('class', 'gamma-container')
+              .style('height', this.option.height + "px")
               .style('position', 'relative')
               .selectAll('canvas')
               .data(['gamma-scene', 'gamma-hover'])
@@ -5031,28 +5075,23 @@
               return d;
           })
               .call(this.zoom);
-          this.canvas
-              .filter(function (item) { return item === 'gamma-hover'; })
-              .on('mousemove', function () {
-              var _a = _this.transfrom, x = _a.x, y = _a.y, k = _a.k;
-              var layerX = event.layerX, layerY = event.layerY, type = event.type;
-              var _b = [(layerX - x) / k, (layerY - y) / k], graphX = _b[0], graphY = _b[1];
-              var nearestNode = manager.find(graphX, graphY);
-              if (Math.pow((graphX - nearestNode.x), 2) + Math.pow((graphY - nearestNode.y), 2) < 9) {
-                  _this.hoveredTargets = _this.manager.graph.links
-                      .filter(function (link) {
-                      return link.source === nearestNode;
-                  })
-                      .map(function (link) { return link.target; });
-                  _this.hoveredNode = nearestNode;
-                  _this.renderHover();
-              }
-              else {
-                  _this.hoveredNode = null;
-                  _this.hoveredTargets = [];
-                  _this.clear('hover');
-              }
-          });
+          this.tooltip = select(container)
+              .select('.gamma-container')
+              .append('pre')
+              .style('position', 'absolute')
+              .style('display', 'none')
+              .style('top', 0)
+              .style('right', 0)
+              .style('width', '300px');
+          this.overall = select(container)
+              .select('.gamma-container')
+              .append('div')
+              .style('position', 'absolute')
+              .style('left', 0)
+              .style('bottom', 0)
+              .style('width', '250px')
+              .style('padding', '10px');
+          this.canvas.filter(function (item) { return item === 'gamma-hover'; }).on('mousemove click', this.handleMouse);
           var _a = this.canvas.nodes().map(function (cvs) { return cvs.getContext('2d'); }), scene = _a[0], hover = _a[1];
           this.contexts.scene = scene;
           this.contexts.hover = hover;
@@ -5060,14 +5099,11 @@
           manager.on('tick', function () {
               _this.render();
               _this.hoveredNode && _this.renderHover();
+          }).on('layout', function () {
+              _this.tooltip.style('display', 'none');
+              _this.overall.html(_this.overallFormat(_this.manager.graph));
           });
-          window.addEventListener('resize', function () {
-              var width = parseInt(select(container).style('width'));
-              _this.zoom.translateBy(_this.canvas, (width - _this.width) / 2, 0);
-              _this.width = option.width || width;
-              _this.canvas.attr('width', _this.width);
-              _this.render();
-          });
+          window.addEventListener('resize', this.resize);
       }
       Renderer.prototype.zooming = function () {
           this.transfrom = event.transform;
@@ -5123,6 +5159,11 @@
               this.contexts[cond].clearRect(0, 0, this.width, height);
           }
       };
+      Renderer.prototype.destory = function () {
+          window.removeEventListener('resize', this.resize);
+          this.zoom.on('zoom', null);
+          this.canvas.filter(function (item) { return item === 'gamma-hover'; }).on('mousemove click', null);
+      };
       return Renderer;
   }());
 
@@ -5146,6 +5187,7 @@
           this.simulation = forceSimulation();
           this.ticks = new Set();
           this.ends = new Set();
+          this.layouts = new Set();
           this.simulationIsRuning = false;
           this.graph = { nodes: [], links: [] };
           this.layout = function (graph) {
@@ -5157,15 +5199,18 @@
                   .alphaTarget(0)
                   .restart()
                   .force('link').links(graph.links);
+              _this.layouts.forEach(function (fn) { return fn.call(_this); });
           };
           this.simulation
               .force('charge', forceManyBody()
               .theta(0.5)
               .distanceMax(1000)
               .strength(-100))
-              .force('link', forceLink().id(function (link) { return link.id; }).iterations(10)
+              .force('link', forceLink()
+              .id(function (link) { return link.id; })
+              .iterations(10)
               .distance(40)
-              .strength(.5))
+              .strength(0.5))
               .force('center', forceCenter())
               .force('collide', forceCollide(6))
               .force('x', forceX().strength(0.1))
@@ -5178,6 +5223,9 @@
               _this.ends.forEach(function (end) { return end.call(_this); });
           });
       }
+      ForceManager.prototype.destory = function () {
+          this.simulation.on('tick', null).on('end', null);
+      };
       ForceManager.prototype.find = function (x, y) {
           return this.simulation.find(x, y);
       };
@@ -5188,6 +5236,10 @@
           else if (type === 'end') {
               this.ends.add(listener);
           }
+          else if (type === 'layout') {
+              this.layouts.add(listener);
+          }
+          return this;
       };
       ForceManager.prototype.off = function (type, listener) {
           if (type === 'tick') {
@@ -5196,6 +5248,10 @@
           else if (type === 'end') {
               this.ends.delete(listener);
           }
+          else if (type === 'layout') {
+              this.layouts.delete(listener);
+          }
+          return this;
       };
       return ForceManager;
   }());
@@ -5208,21 +5264,30 @@
           if (!option.container) {
               console.log('no container');
           }
+          if (option.height) {
+              this.height = option.height;
+          }
           if (option.onEnd) {
               this.onEnd = option.onEnd;
           }
           select(option.container)
               .selectAll('*')
               .remove();
-          this.manager.layout(option.graph);
           this.renderer = new Renderer(this.manager, factory(option.graphSettings), option.container, {
               width: this.width,
               height: this.height,
-              legend: option.legend
+              legend: option.legend,
+              tooltip: option.tooltip,
+              overall: option.overall
           });
+          this.manager.layout(option.graph);
       }
       Gamma.prototype.refreshWithGraph = function (graph) {
           this.manager.layout(graph);
+      };
+      Gamma.prototype.destory = function () {
+          this.renderer.destory();
+          this.manager.destory();
       };
       return Gamma;
   }());

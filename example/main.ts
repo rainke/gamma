@@ -10,6 +10,7 @@ fetch('./data.json').then(res => res.json()).then(data => {
     graphSettings: {
       hoverLabel: 'id'
     },
+    height: 500,
     onEnd() {
       console.log('end');
     },
@@ -19,7 +20,12 @@ fetch('./data.json').then(res => res.json()).then(data => {
     }, {
       color: 'blue',
       name: '学生'
-    }]
+    }],
+    tooltip: {
+      format(node) {
+        return JSON.stringify(node, null, 2)
+      }
+    }
   });
   document.addEventListener('dblclick', function(e){
     if(e.target === this.documentElement) {

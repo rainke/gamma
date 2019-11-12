@@ -7,6 +7,7 @@ export default class ForceManager {
   private simulation: d3.Simulation<GammaNode, GammaLink> = forceSimulation();
   private ticks = new Set<simulationEvent>();
   private ends = new Set<simulationEvent>();
+  private layouts = new Set<simulationEvent>();
   simulationIsRuning = false;
   graph = { nodes: [], links: [] } as GammaGraph;
   constructor() {
@@ -20,9 +21,11 @@ export default class ForceManager {
       )
       .force(
         'link',
-        forceLink<GammaNode, any>().id(link => link.id).iterations(10)
-        .distance(40)
-        .strength(.5)
+        forceLink<GammaNode, any>()
+          .id(link => link.id)
+          .iterations(10)
+          .distance(40)
+          .strength(0.5)
       )
       .force('center', forceCenter())
       .force('collide', forceCollide(6))
@@ -37,6 +40,10 @@ export default class ForceManager {
       });
   }
 
+  destory() {
+    this.simulation.on('tick', null).on('end', null);
+  }
+
   find(x: number, y: number) {
     return this.simulation.find(x, y);
   }
@@ -44,28 +51,35 @@ export default class ForceManager {
   layout = (graph: GammaGraph) => {
     this.simulationIsRuning = true;
     this.graph = graph;
-    // @ts-ignore
     (this.simulation
       .nodes(graph.nodes)
       .alpha(1)
       .alphaTarget(0)
       .restart()
       .force('link') as d3.ForceLink<GammaNode, GammaLink>).links(graph.links);
+    this.layouts.forEach(fn => fn.call(this));
   };
 
-  on(type: 'tick' | 'end', listener: simulationEvent) {
+  on(type: 'tick' | 'end' | 'layout', listener: simulationEvent) {
     if (type === 'tick') {
       this.ticks.add(listener);
     } else if (type === 'end') {
       this.ends.add(listener);
+    } else if (type === 'layout') {
+      this.layouts.add(listener);
     }
+
+    return this;
   }
 
-  off(type: 'tick' | 'end', listener: simulationEvent) {
+  off(type: 'tick' | 'end' | 'layout', listener: simulationEvent) {
     if (type === 'tick') {
       this.ticks.delete(listener);
     } else if (type === 'end') {
       this.ends.delete(listener);
+    } else if (type === 'layout') {
+      this.layouts.delete(listener);
     }
+    return this;
   }
 }

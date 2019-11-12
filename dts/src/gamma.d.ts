@@ -1,5 +1,5 @@
 import { Settings } from './setting';
-import { GammaGraph } from './types';
+import { GammaGraph, Tooltip, Overall } from './types';
 interface legendItem {
     name: string;
     color: string;
@@ -9,8 +9,12 @@ export interface GammaOption {
     container: string;
     graphSettings?: Partial<Settings>;
     forceConfig?: any;
+    width?: number;
+    height?: number;
     onEnd?: () => void;
     legend?: legendItem[];
+    tooltip?: Tooltip;
+    overall?: Overall;
 }
 export default class Gamma {
     private width;
@@ -20,6 +24,7 @@ export default class Gamma {
     onEnd: () => void;
     constructor(option?: GammaOption);
     refreshWithGraph(graph: GammaGraph): void;
+    destory(): void;
 }
 export {};
 //# sourceMappingURL=gamma.d.ts.map

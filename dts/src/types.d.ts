@@ -8,6 +8,12 @@ export interface GammaNode extends d3.SimulationNodeDatum {
     linkColor?: string;
 }
 export declare type GammaLink = d3.SimulationLinkDatum<GammaNode>;
+export interface Tooltip {
+    format?(node: GammaNode): string;
+}
+export interface Overall {
+    format?(g: GammaGraph): string;
+}
 export interface GammaGraph {
     nodes: GammaNode[];
     links: GammaLink[];
