@@ -1,15 +1,15 @@
 import { forceSimulation, forceManyBody, forceLink, forceCenter, forceX, forceY, forceCollide } from 'd3';
 import { GammaNode, GammaLink, GammaGraph } from './types';
 
-type simulationEvent = (this: d3.Simulation<GammaNode, GammaLink>) => void;
+type simulationEvent = <N>(this: d3.Simulation<N, GammaLink<N>>) => void;
 
-export default class ForceManager {
-  private simulation: d3.Simulation<GammaNode, GammaLink> = forceSimulation();
+export default class ForceManager<N extends GammaNode> {
+  private simulation: d3.Simulation<N, GammaLink<N>> = forceSimulation();
   private ticks = new Set<simulationEvent>();
   private ends = new Set<simulationEvent>();
   private layouts = new Set<simulationEvent>();
   simulationIsRuning = false;
-  graph = { nodes: [], links: [] } as GammaGraph;
+  graph = { nodes: [], links: [] } as GammaGraph<N>;
   constructor() {
     this.simulation
       .force(
@@ -21,7 +21,7 @@ export default class ForceManager {
       )
       .force(
         'link',
-        forceLink<GammaNode, any>()
+        forceLink<N, any>()
           .id(link => link.id)
           .iterations(10)
           .distance(40)
@@ -48,7 +48,7 @@ export default class ForceManager {
     return this.simulation.find(x, y);
   }
 
-  layout = (graph: GammaGraph) => {
+  layout = (graph: GammaGraph<N>) => {
     this.simulationIsRuning = true;
     this.graph = graph;
     (this.simulation
@@ -56,7 +56,7 @@ export default class ForceManager {
       .alpha(1)
       .alphaTarget(0)
       .restart()
-      .force('link') as d3.ForceLink<GammaNode, GammaLink>).links(graph.links);
+      .force('link') as d3.ForceLink<GammaNode, GammaLink<N>>).links(graph.links);
     this.layouts.forEach(fn => fn.call(this));
   };
 

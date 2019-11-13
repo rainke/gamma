@@ -2,15 +2,15 @@ import { select } from 'd3';
 import Renderer from './Renderer';
 import setSetings, { Settings } from './setting';
 import forceManager from './forceManager';
-import { GammaGraph, Tooltip, Overall } from './types';
+import { GammaGraph, Tooltip, Overall, GammaNode, GammaLink } from './types';
 
 interface legendItem {
   name: string;
   color: string;
 }
 
-export interface GammaOption {
-  graph: GammaGraph;
+export interface GammaOption<N extends GammaNode> {
+  graph: GammaGraph<N>;
   container: string;
   graphSettings?: Partial<Settings>;
   forceConfig?: any;
@@ -18,16 +18,16 @@ export interface GammaOption {
   height?: number;
   onEnd?: () => void;
   legend?: legendItem[],
-  tooltip?: Tooltip;
-  overall?: Overall
+  tooltip?: Tooltip<N>;
+  overall?: Overall<N>
 }
-export default class Gamma {
+export default class Gamma<N extends GammaNode> {
   private width: number;
   private height = 800;
-  private renderer: Renderer;
-  private manager = new forceManager();
+  private renderer: Renderer<N>;
+  private manager = new forceManager<N>();
   onEnd = function() {};
-  constructor(option?: GammaOption) {
+  constructor(option?: GammaOption<N>) {
     if (!option.container) {
       console.log('no container');
     }
@@ -56,7 +56,7 @@ export default class Gamma {
       this.manager.layout(option.graph);
   }
 
-  refreshWithGraph(graph: GammaGraph) {
+  refreshWithGraph(graph: GammaGraph<N>) {
     this.manager.layout(graph);
   }
 

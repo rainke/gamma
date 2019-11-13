@@ -1,15 +1,15 @@
 import ForceManager from '../forceManager';
-import { legendItem, Tooltip, Overall } from '../types';
+import { GammaNode, legendItem, Tooltip, Overall } from '../types';
 import { Setting } from '../setting';
 declare type ContextKeys = 'hover' | 'scene';
-interface RenderOption {
+interface RenderOption<N> {
     width?: number;
     height: number;
     legend?: legendItem[];
-    tooltip?: Tooltip;
-    overall?: Overall;
+    tooltip?: Tooltip<N>;
+    overall?: Overall<N>;
 }
-declare class Renderer {
+declare class Renderer<N extends GammaNode> {
     private manager;
     private setting;
     private container;
@@ -17,15 +17,17 @@ declare class Renderer {
     private canvas;
     private zoom;
     private contexts;
-    private transfrom;
+    private transform;
     private hoveredNode;
     private hoveredTargets;
     private width;
+    private height;
+    private viewFited;
     private tooltip;
     private overall;
     private tooltipFormat;
     private overallFormat;
-    constructor(manager: ForceManager, setting: Setting, container: string, option: RenderOption);
+    constructor(manager: ForceManager<N>, setting: Setting, container: string, option: RenderOption<N>);
     resize: () => void;
     handleMouse: () => void;
     zooming(): void;

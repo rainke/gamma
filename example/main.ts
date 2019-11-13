@@ -1,11 +1,13 @@
 import Gamma from 'gamma';
+import {GammaNode, GammaLink} from '../src/types'
 
-// @ts-ignore
-import data from './data.json';
+interface CustomNode extends GammaNode {
+  test: 'string'
+}
 
-fetch('./data.json').then(res => res.json()).then(data => {
-  var g = new Gamma({
-    graph: { nodes: data.nodes, links: data.links },
+fetch('./g.json').then(res => res.json()).then(data => {
+  var g = new Gamma<CustomNode>({
+    graph: { nodes: data.nodes, links: data.edges },
     container: '#mount',
     graphSettings: {
       hoverLabel: 'id'
@@ -27,13 +29,8 @@ fetch('./data.json').then(res => res.json()).then(data => {
       }
     }
   });
-  document.addEventListener('dblclick', function(e){
-    if(e.target === this.documentElement) {
-      fetch('./g.json').then(res => res.json()).then(data => {
-        g.refreshWithGraph({nodes: data.nodes, links: data.edges})
-      })
-    }
-  })
+  // @ts-ignore 调试
+  window.g = g;
 })
 
 

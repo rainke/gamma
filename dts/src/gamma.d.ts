@@ -1,11 +1,11 @@
 import { Settings } from './setting';
-import { GammaGraph, Tooltip, Overall } from './types';
+import { GammaGraph, Tooltip, Overall, GammaNode } from './types';
 interface legendItem {
     name: string;
     color: string;
 }
-export interface GammaOption {
-    graph: GammaGraph;
+export interface GammaOption<N extends GammaNode> {
+    graph: GammaGraph<N>;
     container: string;
     graphSettings?: Partial<Settings>;
     forceConfig?: any;
@@ -13,17 +13,17 @@ export interface GammaOption {
     height?: number;
     onEnd?: () => void;
     legend?: legendItem[];
-    tooltip?: Tooltip;
-    overall?: Overall;
+    tooltip?: Tooltip<N>;
+    overall?: Overall<N>;
 }
-export default class Gamma {
+export default class Gamma<N extends GammaNode> {
     private width;
     private height;
     private renderer;
     private manager;
     onEnd: () => void;
-    constructor(option?: GammaOption);
-    refreshWithGraph(graph: GammaGraph): void;
+    constructor(option?: GammaOption<N>);
+    refreshWithGraph(graph: GammaGraph<N>): void;
     destory(): void;
 }
 export {};

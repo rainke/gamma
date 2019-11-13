@@ -4,53 +4,68 @@ import renderLink from './link';
 import renderHover from './hover';
 import renderLegend from './legend';
 import ForceManager from '../forceManager';
-import { GammaGraph, GammaNode, legendItem, Tooltip, Overall } from '../types';
+import { GammaGraph, GammaNode, legendItem, Tooltip, Overall, GammaLink } from '../types';
 import { Setting } from '../setting';
 
 type ContextKeys = 'hover' | 'scene';
 
 type Contexts = { [key in ContextKeys]?: CanvasRenderingContext2D };
 
-interface RenderOption {
+interface RenderOption<N> {
   width?: number;
   height: number;
   legend?: legendItem[];
-  tooltip?: Tooltip;
-  overall?: Overall
+  tooltip?: Tooltip<N>;
+  overall?: Overall<N>;
 }
 
-class Renderer {
+class Renderer<N extends GammaNode> {
   private canvas: Selection<HTMLCanvasElement, string, HTMLElement, any>;
   private zoom = zoom<HTMLCanvasElement, string>()
     .scaleExtent([0.1, 4])
     .on('zoom', this.zooming.bind(this));
   private contexts: Contexts = {};
-  private transfrom = zoomIdentity;
-  private hoveredNode: GammaNode = null;
-  private hoveredTargets: GammaNode[] = [];
+  private transform = zoomIdentity;
+  private hoveredNode: N = null;
+  private hoveredTargets: N[] = [];
   private width!: number;
+  private height!: number;
+  private viewFited = false;
   private tooltip: d3.Selection<HTMLPreElement, any, any, any>;
   private overall: d3.Selection<HTMLDivElement, any, any, any>;
-  private tooltipFormat = function(node: GammaNode) {return JSON.stringify(node, null, 2)}
-  private overallFormat = function(graph: GammaGraph) {return `节点总数：${graph.nodes.length}`}
+  private tooltipFormat = function(node: N) {
+    return JSON.stringify(node, null, 2);
+  };
+  private overallFormat = function(this: Renderer<N>, graph: GammaGraph<N>) {
+    return `节点总数：${
+      graph.nodes.length
+    }<br>transform:<br>x:${
+      this.transform.x
+    }<br>y:${
+      this.transform.y
+    }<br>k:${
+      this.transform.k
+    }`;
+  };
   constructor(
-    private manager: ForceManager,
+    private manager: ForceManager<N>,
     private setting: Setting,
     private container: string,
-    private option: RenderOption
+    private option: RenderOption<N>
   ) {
     const defaultWidth = parseInt(select(container).style('width'));
-    if(option.tooltip && option.tooltip.format) {
+    if (option.tooltip && option.tooltip.format) {
       this.tooltipFormat = option.tooltip.format;
     }
-    if(option.overall && option.overall.format) {
+    if (option.overall && option.overall.format) {
       this.overallFormat = option.overall.format;
     }
     this.width = option.width || defaultWidth;
+    this.height = option.height || 500;
     this.canvas = select(container)
       .append('div')
       .attr('class', 'gamma-container')
-      .style('height', `${this.option.height}px`)
+      .style('height', `${this.height}px`)
       .style('position', 'relative')
       .selectAll('canvas')
       .data(['gamma-scene', 'gamma-hover'])
@@ -60,7 +75,7 @@ class Renderer {
       .style('top', 0)
       .style('left', 0)
       .attr('width', this.width)
-      .attr('height', option.height)
+      .attr('height', this.height)
       .attr('class', function(d) {
         return d;
       })
@@ -82,22 +97,24 @@ class Renderer {
       .style('left', 0)
       .style('bottom', 0)
       .style('width', '250px')
-      .style('padding', '10px')
+      .style('padding', '10px');
 
     this.canvas.filter(item => item === 'gamma-hover').on('mousemove click', this.handleMouse);
 
     const [scene, hover] = this.canvas.nodes().map(cvs => cvs.getContext('2d'));
     this.contexts.scene = scene;
     this.contexts.hover = hover;
-    this.zoom.translateBy(this.canvas, this.width / 2, option.height / 2);
+    this.zoom.translateBy(this.canvas, this.width / 2, this.height / 2);
 
-    manager.on('tick', () => {
-      this.render();
-      this.hoveredNode && this.renderHover();
-    }).on('layout', () => {
-      this.tooltip.style('display', 'none');
-      this.overall.html(this.overallFormat(this.manager.graph))
-    })
+    manager
+      .on('tick', () => {
+        this.render();
+        this.hoveredNode && this.renderHover();
+      })
+      .on('layout', () => {
+        this.tooltip.style('display', 'none');
+        this.overall.html(this.overallFormat(this.manager.graph));
+      });
 
     window.addEventListener('resize', this.resize);
   }
@@ -111,7 +128,7 @@ class Renderer {
   };
 
   handleMouse = () => {
-    const { x, y, k } = this.transfrom;
+    const { x, y, k } = this.transform;
     const { layerX, layerY, type } = event;
     const [graphX, graphY] = [(layerX - x) / k, (layerY - y) / k];
     const nearestNode = this.manager.find(graphX, graphY);
@@ -121,7 +138,7 @@ class Renderer {
         .filter(link => {
           return link.source === nearestNode;
         })
-        .map(link => link.target as GammaNode);
+        .map(link => link.target as N);
 
       this.hoveredNode = nearestNode;
       this.renderHover();
@@ -139,7 +156,7 @@ class Renderer {
   };
 
   zooming() {
-    this.transfrom = (event as D3ZoomEvent<HTMLCanvasElement, any>).transform;
+    this.transform = (event as D3ZoomEvent<HTMLCanvasElement, any>).transform;
     if (!this.manager.simulationIsRuning) {
       this.render();
     }
@@ -147,7 +164,8 @@ class Renderer {
   }
 
   setTransfrom(ctx: CanvasRenderingContext2D) {
-    const { x, y, k } = this.transfrom;
+    this.overall.html(this.overallFormat(this.manager.graph))
+    const { x, y, k } = this.transform;
     ctx.translate(x, y);
     ctx.scale(k, k);
   }
@@ -158,9 +176,9 @@ class Renderer {
     this.setTransfrom(this.contexts.hover);
     this.hoveredTargets.forEach(node => {
       renderLink({ ...this.hoveredNode, linkColor: 'pink' }, node, this.contexts.hover, this.setting);
-      renderHover({ ...node, color: 'pink' }, this.contexts.hover, this.transfrom, this.setting, { label: false });
+      renderHover({ ...node, color: 'pink' }, this.contexts.hover, this.transform, this.setting, { label: false });
     });
-    renderHover(this.hoveredNode, this.contexts.hover, this.transfrom, this.setting);
+    renderHover(this.hoveredNode, this.contexts.hover, this.transform, this.setting);
     this.contexts.hover.restore();
   }
 
@@ -171,9 +189,23 @@ class Renderer {
     this.manager.graph.links.forEach(link => {
       renderLink(link.source as GammaNode, link.target as GammaNode, this.contexts.scene, this.setting);
     });
+    let maxX = 0;
+    let maxY = 0;
+    let minX = 0;
+    let minY = 0;
     this.manager.graph.nodes.forEach(node => {
+      maxX = maxX > node.x ? maxX : node.x;
+      maxY = maxY > node.y ? maxY : node.y;
+      minX = minX < node.x ? minX : node.x;
+      minY = minY < node.y ? minY : node.y;
+
       renderNode(node, this.contexts.scene, this.setting);
     });
+    if (this.manager.simulationIsRuning && !this.viewFited && minY + this.height / 2 / this.transform.k < 0) {
+      console.log(this.height / 2 / minY);
+      this.viewFited = true;
+      this.zoom.scaleTo(this.canvas.transition(), -this.height / 2 / minY);
+    }
 
     this.contexts.scene.restore();
 
