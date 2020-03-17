@@ -12,11 +12,13 @@ export interface GammaNode extends d3.SimulationNodeDatum {
 export type GammaLink<T> = d3.SimulationLinkDatum<T>;
 
 export interface Tooltip<N> {
-  format?(node: N): string
+  format?(node: N): string;
+  custom?(): () => HTMLDivElement
 }
 
 export interface Overall<N> {
-  format?(g: GammaGraph<N>): string
+  format?(g: GammaGraph<N>): string;
+  custom?(): () => HTMLDivElement;
 }
 
 export interface GammaGraph<N> {

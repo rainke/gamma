@@ -22,7 +22,12 @@ interface RenderOption<N> {
 class Renderer<N extends GammaNode> {
   private canvas: Selection<HTMLCanvasElement, string, HTMLElement, any>;
   private zoom = zoom<HTMLCanvasElement, string>()
+    // .extent([[250, 250], [250, 250]])
     .scaleExtent([0.1, 4])
+    .translateExtent([
+      [-5000, -3000],
+      [5000, 3000]
+    ])
     .on('zoom', this.zooming.bind(this));
   private contexts: Contexts = {};
   private transform = zoomIdentity;
@@ -37,15 +42,7 @@ class Renderer<N extends GammaNode> {
     return JSON.stringify(node, null, 2);
   };
   private overallFormat = function(this: Renderer<N>, graph: GammaGraph<N>) {
-    return `节点总数：${
-      graph.nodes.length
-    }<br>transform:<br>x:${
-      this.transform.x
-    }<br>y:${
-      this.transform.y
-    }<br>k:${
-      this.transform.k
-    }`;
+    return `节点总数：${graph.nodes.length}<br>transform:<br>x:${this.transform.x}<br>y:${this.transform.y}<br>k:${this.transform.k}`;
   };
   constructor(
     private manager: ForceManager<N>,
@@ -81,23 +78,8 @@ class Renderer<N extends GammaNode> {
       })
       .call(this.zoom);
 
-    this.tooltip = select(container)
-      .select('.gamma-container')
-      .append('pre')
-      .style('position', 'absolute')
-      .style('display', 'none')
-      .style('top', 0)
-      .style('right', 0)
-      .style('width', '300px');
-
-    this.overall = select(container)
-      .select('.gamma-container')
-      .append('div')
-      .style('position', 'absolute')
-      .style('left', 0)
-      .style('bottom', 0)
-      .style('width', '250px')
-      .style('padding', '10px');
+    this.buildTooltip();
+    // this.buildOverall();
 
     this.canvas.filter(item => item === 'gamma-hover').on('mousemove click', this.handleMouse);
 
@@ -113,10 +95,37 @@ class Renderer<N extends GammaNode> {
       })
       .on('layout', () => {
         this.tooltip.style('display', 'none');
-        this.overall.html(this.overallFormat(this.manager.graph));
+        // this.overall.html(this.overallFormat(this.manager.graph));
       });
 
     window.addEventListener('resize', this.resize);
+  }
+
+  buildOverall() {
+    
+    // this.overall = select(this.container)
+    //   .select('.gamma-container')
+    //   .append('div')
+    //   .style('position', 'absolute')
+    //   .style('left', 0)
+    //   .style('bottom', 0)
+    //   .style('width', '270px')
+    //   .style('padding', '10px');
+
+    //   if (this.option.overall && this.option.overall.custom) {
+    //     this.overall = this.overall.append(this.option.overall.custom())
+    //   }
+  }
+
+  buildTooltip() {
+    this.tooltip = select(this.container)
+      .select('.gamma-container')
+      .append('pre')
+      .style('position', 'absolute')
+      .style('display', 'none')
+      .style('top', 0)
+      .style('right', 0)
+      .style('width', '300px');
   }
 
   resize = () => {
@@ -143,7 +152,8 @@ class Renderer<N extends GammaNode> {
       this.hoveredNode = nearestNode;
       this.renderHover();
       if (type === 'click') {
-        this.tooltip.style('display', 'block').text(this.tooltipFormat(nearestNode));
+        const txt = this.tooltipFormat(nearestNode);
+        txt && this.tooltip.style('display', 'block').text(txt);
       }
     } else {
       this.hoveredNode = null;
@@ -164,7 +174,7 @@ class Renderer<N extends GammaNode> {
   }
 
   setTransfrom(ctx: CanvasRenderingContext2D) {
-    this.overall.html(this.overallFormat(this.manager.graph))
+    // this.overall.html(this.overallFormat(this.manager.graph));
     const { x, y, k } = this.transform;
     ctx.translate(x, y);
     ctx.scale(k, k);
@@ -189,23 +199,23 @@ class Renderer<N extends GammaNode> {
     this.manager.graph.links.forEach(link => {
       renderLink(link.source as GammaNode, link.target as GammaNode, this.contexts.scene, this.setting);
     });
-    let maxX = 0;
-    let maxY = 0;
-    let minX = 0;
-    let minY = 0;
+    // let maxX = 0;
+    // let maxY = 0;
+    // let minX = 0;
+    // let minY = 0;
     this.manager.graph.nodes.forEach(node => {
-      maxX = maxX > node.x ? maxX : node.x;
-      maxY = maxY > node.y ? maxY : node.y;
-      minX = minX < node.x ? minX : node.x;
-      minY = minY < node.y ? minY : node.y;
+      // maxX = maxX > node.x ? maxX : node.x;
+      // maxY = maxY > node.y ? maxY : node.y;
+      // minX = minX < node.x ? minX : node.x;
+      // minY = minY < node.y ? minY : node.y;
 
       renderNode(node, this.contexts.scene, this.setting);
     });
-    if (this.manager.simulationIsRuning && !this.viewFited && minY + this.height / 2 / this.transform.k < 0) {
-      console.log(this.height / 2 / minY);
-      this.viewFited = true;
-      this.zoom.scaleTo(this.canvas.transition(), -this.height / 2 / minY);
-    }
+    // if (this.manager.simulationIsRuning && !this.viewFited && minY + this.height / 2 / this.transform.k < 0) {
+    //   console.log(this.height / 2 / minY);
+    //   this.viewFited = true;
+    //   this.zoom.scaleTo(this.canvas.transition(), -this.height / 2 / minY);
+    // }
 
     this.contexts.scene.restore();
 

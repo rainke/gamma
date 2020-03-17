@@ -28,6 +28,8 @@ declare class Renderer<N extends GammaNode> {
     private tooltipFormat;
     private overallFormat;
     constructor(manager: ForceManager<N>, setting: Setting, container: string, option: RenderOption<N>);
+    buildOverall(): void;
+    buildTooltip(): void;
     resize: () => void;
     handleMouse: () => void;
     zooming(): void;

@@ -5008,13 +5008,19 @@
           this.option = option;
           this.zoom = zoom()
               .scaleExtent([0.1, 4])
+              .translateExtent([[-5000, -3000], [5000, 3000]])
               .on('zoom', this.zooming.bind(this));
           this.contexts = {};
-          this.transfrom = identity$2;
+          this.transform = identity$2;
           this.hoveredNode = null;
           this.hoveredTargets = [];
-          this.tooltipFormat = function (node) { return JSON.stringify(node, null, 2); };
-          this.overallFormat = function (graph) { return "\u8282\u70B9\u603B\u6570\uFF1A" + graph.nodes.length; };
+          this.viewFited = false;
+          this.tooltipFormat = function (node) {
+              return JSON.stringify(node, null, 2);
+          };
+          this.overallFormat = function (graph) {
+              return "\u8282\u70B9\u603B\u6570\uFF1A" + graph.nodes.length + "<br>transform:<br>x:" + this.transform.x + "<br>y:" + this.transform.y + "<br>k:" + this.transform.k;
+          };
           this.resize = function () {
               var width = parseInt(select(_this.container).style('width'));
               _this.zoom.translateBy(_this.canvas, (width - _this.width) / 2, 0);
@@ -5023,7 +5029,7 @@
               _this.render();
           };
           this.handleMouse = function () {
-              var _a = _this.transfrom, x = _a.x, y = _a.y, k = _a.k;
+              var _a = _this.transform, x = _a.x, y = _a.y, k = _a.k;
               var layerX = event.layerX, layerY = event.layerY, type = event.type;
               var _b = [(layerX - x) / k, (layerY - y) / k], graphX = _b[0], graphY = _b[1];
               var nearestNode = _this.manager.find(graphX, graphY);
@@ -5037,7 +5043,8 @@
                   _this.hoveredNode = nearestNode;
                   _this.renderHover();
                   if (type === 'click') {
-                      _this.tooltip.style('display', 'block').text(_this.tooltipFormat(nearestNode));
+                      var txt = _this.tooltipFormat(nearestNode);
+                      txt && _this.tooltip.style('display', 'block').text(txt);
                   }
               }
               else {
@@ -5057,10 +5064,11 @@
               this.overallFormat = option.overall.format;
           }
           this.width = option.width || defaultWidth;
+          this.height = option.height || 500;
           this.canvas = select(container)
               .append('div')
               .attr('class', 'gamma-container')
-              .style('height', this.option.height + "px")
+              .style('height', this.height + "px")
               .style('position', 'relative')
               .selectAll('canvas')
               .data(['gamma-scene', 'gamma-hover'])
@@ -5070,7 +5078,7 @@
               .style('top', 0)
               .style('left', 0)
               .attr('width', this.width)
-              .attr('height', option.height)
+              .attr('height', this.height)
               .attr('class', function (d) {
               return d;
           })
@@ -5095,25 +5103,28 @@
           var _a = this.canvas.nodes().map(function (cvs) { return cvs.getContext('2d'); }), scene = _a[0], hover = _a[1];
           this.contexts.scene = scene;
           this.contexts.hover = hover;
-          this.zoom.translateBy(this.canvas, this.width / 2, option.height / 2);
-          manager.on('tick', function () {
+          this.zoom.translateBy(this.canvas, this.width / 2, this.height / 2);
+          manager
+              .on('tick', function () {
               _this.render();
               _this.hoveredNode && _this.renderHover();
-          }).on('layout', function () {
+          })
+              .on('layout', function () {
               _this.tooltip.style('display', 'none');
               _this.overall.html(_this.overallFormat(_this.manager.graph));
           });
           window.addEventListener('resize', this.resize);
       }
       Renderer.prototype.zooming = function () {
-          this.transfrom = event.transform;
+          this.transform = event.transform;
           if (!this.manager.simulationIsRuning) {
               this.render();
           }
           this.hoveredNode && this.renderHover();
       };
       Renderer.prototype.setTransfrom = function (ctx) {
-          var _a = this.transfrom, x = _a.x, y = _a.y, k = _a.k;
+          this.overall.html(this.overallFormat(this.manager.graph));
+          var _a = this.transform, x = _a.x, y = _a.y, k = _a.k;
           ctx.translate(x, y);
           ctx.scale(k, k);
       };
@@ -5124,9 +5135,9 @@
           this.setTransfrom(this.contexts.hover);
           this.hoveredTargets.forEach(function (node) {
               renderLink(__assign(__assign({}, _this.hoveredNode), { linkColor: 'pink' }), node, _this.contexts.hover, _this.setting);
-              renderHover(__assign(__assign({}, node), { color: 'pink' }), _this.contexts.hover, _this.transfrom, _this.setting, { label: false });
+              renderHover(__assign(__assign({}, node), { color: 'pink' }), _this.contexts.hover, _this.transform, _this.setting, { label: false });
           });
-          renderHover(this.hoveredNode, this.contexts.hover, this.transfrom, this.setting);
+          renderHover(this.hoveredNode, this.contexts.hover, this.transform, this.setting);
           this.contexts.hover.restore();
       };
       Renderer.prototype.render = function () {
