@@ -8,3 +8,20 @@
 
 ### api
 `new Gamma(option)`
+
+#### option
+* graph {nodes, links}
+* container 渲染容器
+* graphSettings：
+```
+    nodeSize: 节点大小;
+    nodeColor: 节点颜色;
+    hoverNodeColor: 鼠标悬停颜色;
+    hoverLabelColor: 文字颜色;
+    hoverLabel: 显示文字的键;
+```
+* width
+* height
+* legend 图例
+* tooltip 提示
+* onEnd 结束时的回调
